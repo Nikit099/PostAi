@@ -5,10 +5,10 @@ interface DeviceOrientation {
   beta: number | null  // Вращение вокруг оси X (-180 до 180 градусов)
   gamma: number | null // Вращение вокруг оси Y (-90 до 90 градусов)
   absolute: boolean | null
-  supported: boolean
+  supported: boolean | 'pending'
 }
 
-export function useDeviceOrientation(): DeviceOrientation {
+export function useDeviceOrientation(): DeviceOrientation & { requestPermission: () => Promise<boolean> } {
   const [orientation, setOrientation] = useState<DeviceOrientation>({
     alpha: null,
     beta: null,

@@ -17,10 +17,10 @@ interface DeviceMotion {
     gamma: number | null
   }
   interval: number | null
-  supported: boolean
+  supported: boolean | 'pending'
 }
 
-export function useDeviceMotion(): DeviceMotion {
+export function useDeviceMotion(): DeviceMotion & { requestPermission: () => Promise<boolean> } {
   const [motion, setMotion] = useState<DeviceMotion>({
     acceleration: { x: null, y: null, z: null },
     accelerationIncludingGravity: { x: null, y: null, z: null },
