@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react'
 
-interface GeolocationPosition {
+// Удаляем кастомный интерфейс и используем встроенные типы
+// Встроенный тип GeolocationPosition уже имеет структуру { coords: GeolocationCoordinates, timestamp: number }
+
+// Удаляем кастомный GeolocationError, используем встроенный GeolocationPositionError
+
+interface UseGeolocationOptions {
+  enableHighAccuracy?: boolean
+  timeout?: number
+  maximumAge?: number
+  watch?: boolean
+}
+
+// Интерфейс для нашего состояния
+interface GeolocationState {
   latitude: number | null
   longitude: number | null
   accuracy: number | null
@@ -11,18 +24,6 @@ interface GeolocationPosition {
   timestamp: number | null
 }
 
-interface GeolocationError {
-  code: number
-  message: string
-}
-
-interface UseGeolocationOptions {
-  enableHighAccuracy?: boolean
-  timeout?: number
-  maximumAge?: number
-  watch?: boolean
-}
-
 export function useGeolocation(options: UseGeolocationOptions = {}) {
   const {
     enableHighAccuracy = true,
@@ -31,7 +32,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
     watch = false,
   } = options
 
-  const [position, setPosition] = useState<GeolocationPosition>({
+  const [position, setPosition] = useState<GeolocationState>({
     latitude: null,
     longitude: null,
     accuracy: null,
@@ -66,7 +67,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
       setIsLoading(false)
     }
 
-    const handleError = (err: GeolocationError) => {
+    const handleError = (err: GeolocationPositionError) => {
       let message = 'Не удалось получить геолокацию'
       
       switch (err.code) {

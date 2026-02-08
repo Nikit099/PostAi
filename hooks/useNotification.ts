@@ -1,17 +1,26 @@
 import { useState, useCallback } from 'react'
 
-interface NotificationOptions {
+// Определяем интерфейс для действий уведомлений
+interface CustomNotificationAction {
+  action: string
+  title: string
+  icon?: string
+}
+
+// Используем встроенный тип NotificationOptions из TypeScript
+// и расширяем его для дополнительных свойств
+interface CustomNotificationOptions {
   title: string
   body?: string
   icon?: string
   badge?: string
-  image?: string
+  image?: string // Нестандартное свойство, но поддерживается в некоторых браузерах
   tag?: string
   data?: any
   requireInteraction?: boolean
   silent?: boolean
-  vibrate?: number | number[]
-  actions?: NotificationAction[]
+  vibrate?: number | number[] // Нестандартное свойство
+  actions?: CustomNotificationAction[]
 }
 
 export function useNotification() {
@@ -34,7 +43,7 @@ export function useNotification() {
     }
   }, [])
 
-  const showNotification = useCallback(async (options: NotificationOptions) => {
+  const showNotification = useCallback(async (options: CustomNotificationOptions) => {
     if (typeof Notification === 'undefined') {
       console.warn('Web Notifications не поддерживаются')
       return null
@@ -49,18 +58,31 @@ export function useNotification() {
     }
 
     try {
-      const notification = new Notification(options.title, {
+      // Создаем базовый объект опций для Notification
+      const notificationOptions: any = {
         body: options.body,
         icon: options.icon,
         badge: options.badge,
-        image: options.image,
         tag: options.tag,
         data: options.data,
         requireInteraction: options.requireInteraction,
         silent: options.silent,
-        vibrate: options.vibrate,
-        actions: options.actions,
-      })
+      }
+
+      // Добавляем нестандартные свойства, если они есть
+      if (options.vibrate !== undefined) {
+        notificationOptions.vibrate = options.vibrate
+      }
+      
+      if (options.actions !== undefined) {
+        notificationOptions.actions = options.actions
+      }
+      
+      if (options.image !== undefined) {
+        notificationOptions.image = options.image
+      }
+
+      const notification = new Notification(options.title, notificationOptions)
 
       return notification
     } catch (error) {

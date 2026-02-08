@@ -1,4 +1,4 @@
-import { useState, useRef, RefObject } from 'react'
+import { useState, useRef, RefObject, useEffect } from 'react'
 
 interface GestureState {
   isDragging: boolean
