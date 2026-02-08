@@ -1,4 +1,22 @@
-import { useState, useCallback, RefObject } from 'react'
+import { useState, useCallback, RefObject, useEffect } from 'react'
+
+interface DocumentWithFullscreen extends Document {
+  webkitFullscreenElement?: Element | null
+  mozFullScreenElement?: Element | null
+  msFullscreenElement?: Element | null
+  webkitFullscreenEnabled?: boolean
+  mozFullScreenEnabled?: boolean
+  msFullscreenEnabled?: boolean
+  webkitExitFullscreen?: () => Promise<void>
+  mozCancelFullScreen?: () => Promise<void>
+  msExitFullscreen?: () => Promise<void>
+}
+
+interface HTMLElementWithFullscreen extends HTMLElement {
+  webkitRequestFullscreen?: () => Promise<void>
+  mozRequestFullScreen?: () => Promise<void>
+  msRequestFullscreen?: () => Promise<void>
+}
 
 export function useFullscreen<T extends HTMLElement = HTMLElement>(
   ref: RefObject<T>
@@ -6,17 +24,17 @@ export function useFullscreen<T extends HTMLElement = HTMLElement>(
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const enterFullscreen = useCallback(async () => {
-    const element = ref.current || document.documentElement
+    const element = (ref.current || document.documentElement) as HTMLElementWithFullscreen
 
     try {
       if (element.requestFullscreen) {
         await element.requestFullscreen()
-      } else if ((element as any).webkitRequestFullscreen) {
-        await (element as any).webkitRequestFullscreen()
-      } else if ((element as any).mozRequestFullScreen) {
-        await (element as any).mozRequestFullScreen()
-      } else if ((element as any).msRequestFullscreen) {
-        await (element as any).msRequestFullscreen()
+      } else if (element.webkitRequestFullscreen) {
+        await element.webkitRequestFullscreen()
+      } else if (element.mozRequestFullScreen) {
+        await element.mozRequestFullScreen()
+      } else if (element.msRequestFullscreen) {
+        await element.msRequestFullscreen()
       } else {
         throw new Error('Fullscreen API не поддерживается')
       }
@@ -26,15 +44,17 @@ export function useFullscreen<T extends HTMLElement = HTMLElement>(
   }, [ref])
 
   const exitFullscreen = useCallback(async () => {
+    const doc = document as DocumentWithFullscreen
+    
     try {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen()
-      } else if ((document as any).webkitExitFullscreen) {
-        await (document as any).webkitExitFullscreen()
-      } else if ((document as any).mozCancelFullScreen) {
-        await (document as any).mozCancelFullScreen()
-      } else if ((document as any).msExitFullscreen) {
-        await (document as any).msExitFullscreen()
+      if (doc.exitFullscreen) {
+        await doc.exitFullscreen()
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen()
+      } else if (doc.mozCancelFullScreen) {
+        await doc.mozCancelFullScreen()
+      } else if (doc.msExitFullscreen) {
+        await doc.msExitFullscreen()
       } else {
         throw new Error('Fullscreen API не поддерживается')
       }
@@ -53,18 +73,19 @@ export function useFullscreen<T extends HTMLElement = HTMLElement>(
 
   // Отслеживаем изменения полноэкранного режима
   const handleFullscreenChange = useCallback(() => {
+    const doc = document as DocumentWithFullscreen
     const isFullscreen = !!(
-      document.fullscreenElement ||
-      (document as any).webkitFullscreenElement ||
-      (document as any).mozFullScreenElement ||
-      (document as any).msFullscreenElement
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
     )
     
     setIsFullscreen(isFullscreen)
   }, [])
 
   // Добавляем обработчики событий
-  useState(() => {
+  useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
     document.addEventListener('mozfullscreenchange', handleFullscreenChange)
@@ -76,13 +97,14 @@ export function useFullscreen<T extends HTMLElement = HTMLElement>(
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
     }
-  })
+  }, [handleFullscreenChange])
 
+  const doc = document as DocumentWithFullscreen
   const isSupported = !!(
-    document.fullscreenEnabled ||
-    (document as any).webkitFullscreenEnabled ||
-    (document as any).mozFullScreenEnabled ||
-    (document as any).msFullscreenEnabled
+    doc.fullscreenEnabled ||
+    doc.webkitFullscreenEnabled ||
+    doc.mozFullScreenEnabled ||
+    doc.msFullscreenEnabled
   )
 
   return {

@@ -1,18 +1,33 @@
 import { useState, useEffect, useCallback } from 'react'
 
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[]
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed'
+    platform: string
+  }>
+  prompt(): Promise<void>
+}
+
 interface PWAState {
   isInstalled: boolean
   canInstall: boolean
   isStandalone: boolean
-  deferredPrompt: any | null
+  deferredPrompt: BeforeInstallPromptEvent | null
   isOnline: boolean
   isUpdateAvailable: boolean
 }
 
 interface UsePWAOptions {
-  onBeforeInstallPrompt?: (event: any) => void
+  onBeforeInstallPrompt?: (event: BeforeInstallPromptEvent) => void
   onAppInstalled?: () => void
   onUpdateAvailable?: () => void
+}
+
+declare global {
+  interface Window {
+    BeforeInstallPromptEvent?: typeof Event
+  }
 }
 
 export function usePWA(options: UsePWAOptions = {}) {
@@ -54,18 +69,20 @@ export function usePWA(options: UsePWAOptions = {}) {
   }, [])
 
   // Обработчик события beforeinstallprompt
-  const handleBeforeInstallPrompt = useCallback((event: any) => {
+  const handleBeforeInstallPrompt = useCallback((event: Event) => {
+    const beforeInstallEvent = event as BeforeInstallPromptEvent
+    
     // Предотвращаем автоматическое отображение подсказки
     event.preventDefault()
     
     // Сохраняем событие для использования позже
     setState(prev => ({
       ...prev,
-      deferredPrompt: event,
+      deferredPrompt: beforeInstallEvent,
     }))
 
     if (onBeforeInstallPrompt) {
-      onBeforeInstallPrompt(event)
+      onBeforeInstallPrompt(beforeInstallEvent)
     }
   }, [onBeforeInstallPrompt])
 
@@ -155,27 +172,39 @@ export function usePWA(options: UsePWAOptions = {}) {
 
   // Открытие приложения в полноэкранном режиме
   const openFullscreen = useCallback(() => {
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen()
-    } else if ((document.documentElement as any).webkitRequestFullscreen) {
-      (document.documentElement as any).webkitRequestFullscreen()
-    } else if ((document.documentElement as any).mozRequestFullScreen) {
-      (document.documentElement as any).mozRequestFullScreen()
-    } else if ((document.documentElement as any).msRequestFullscreen) {
-      (document.documentElement as any).msRequestFullscreen()
+    const docElement = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>
+      mozRequestFullScreen?: () => Promise<void>
+      msRequestFullscreen?: () => Promise<void>
+    }
+    
+    if (docElement.requestFullscreen) {
+      docElement.requestFullscreen()
+    } else if (docElement.webkitRequestFullscreen) {
+      docElement.webkitRequestFullscreen()
+    } else if (docElement.mozRequestFullScreen) {
+      docElement.mozRequestFullScreen()
+    } else if (docElement.msRequestFullscreen) {
+      docElement.msRequestFullscreen()
     }
   }, [])
 
   // Выход из полноэкранного режима
   const exitFullscreen = useCallback(() => {
-    if (document.exitFullscreen) {
-      document.exitFullscreen()
-    } else if ((document as any).webkitExitFullscreen) {
-      (document as any).webkitExitFullscreen()
-    } else if ((document as any).mozCancelFullScreen) {
-      (document as any).mozCancelFullScreen()
-    } else if ((document as any).msExitFullscreen) {
-      (document as any).msExitFullscreen()
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>
+      mozCancelFullScreen?: () => Promise<void>
+      msExitFullscreen?: () => Promise<void>
+    }
+    
+    if (doc.exitFullscreen) {
+      doc.exitFullscreen()
+    } else if (doc.webkitExitFullscreen) {
+      doc.webkitExitFullscreen()
+    } else if (doc.mozCancelFullScreen) {
+      doc.mozCancelFullScreen()
+    } else if (doc.msExitFullscreen) {
+      doc.msExitFullscreen()
     }
   }, [])
 

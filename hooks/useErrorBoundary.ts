@@ -4,7 +4,7 @@ interface ErrorInfo {
   error: Error
   errorInfo?: React.ErrorInfo
   timestamp: Date
-  componentStack?: string
+  componentStack?: string | null
 }
 
 interface UseErrorBoundaryOptions {

@@ -7,6 +7,15 @@ interface ScreenShareOptions {
   onError?: (error: string) => void
 }
 
+interface DisplayMediaStreamOptions {
+  video?: boolean | MediaTrackConstraints
+  audio?: boolean | MediaTrackConstraints
+}
+
+interface MediaDevicesWithDisplayMedia extends MediaDevices {
+  getDisplayMedia(constraints?: DisplayMediaStreamOptions): Promise<MediaStream>
+}
+
 export function useScreenShare(options: ScreenShareOptions = {}) {
   const {
     audio = false,
@@ -26,9 +35,9 @@ export function useScreenShare(options: ScreenShareOptions = {}) {
   const checkAudioSupport = useCallback(async () => {
     try {
       // Проверяем поддержку захвата аудио с экрана
-      const displayMedia = navigator.mediaDevices as any
-      if (displayMedia && displayMedia.getDisplayMedia) {
-        const stream = await displayMedia.getDisplayMedia({ video: true, audio: true })
+      const mediaDevices = navigator.mediaDevices as MediaDevicesWithDisplayMedia
+      if (mediaDevices && mediaDevices.getDisplayMedia) {
+        const stream = await mediaDevices.getDisplayMedia({ video: true, audio: true })
         const hasAudio = stream.getAudioTracks().length > 0
         stream.getTracks().forEach(track => track.stop())
         setIsAudioSupported(hasAudio)
@@ -41,7 +50,9 @@ export function useScreenShare(options: ScreenShareOptions = {}) {
   }, [])
 
   const startScreenShare = useCallback(async () => {
-    if (!navigator.mediaDevices?.getDisplayMedia) {
+    const mediaDevices = navigator.mediaDevices as MediaDevicesWithDisplayMedia
+    
+    if (!mediaDevices?.getDisplayMedia) {
       const errorMsg = 'Демонстрация экрана не поддерживается вашим браузером'
       setError(errorMsg)
       if (onError) onError(errorMsg)
@@ -52,8 +63,7 @@ export function useScreenShare(options: ScreenShareOptions = {}) {
     setError(null)
 
     try {
-      const displayMedia = navigator.mediaDevices as any
-      const constraints: any = {
+      const constraints: DisplayMediaStreamOptions = {
         video: video === true ? {} : video,
       }
 
@@ -66,14 +76,14 @@ export function useScreenShare(options: ScreenShareOptions = {}) {
       }
 
       // Указываем тип поверхности для захвата
-      if (surface && displayMedia.getDisplayMedia) {
+      if (surface) {
         constraints.video = {
-          ...constraints.video,
+          ...(typeof constraints.video === 'object' ? constraints.video : {}),
           displaySurface: surface,
-        }
+        } as MediaTrackConstraints
       }
 
-      const stream = await displayMedia.getDisplayMedia(constraints)
+      const stream = await mediaDevices.getDisplayMedia(constraints)
       streamRef.current = stream
 
       // Обработчик остановки демонстрации экрана пользователем

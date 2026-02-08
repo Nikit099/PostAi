@@ -8,6 +8,23 @@ interface BatteryStatus {
   supported: boolean
 }
 
+interface BatteryManager extends EventTarget {
+  level: number
+  charging: boolean
+  chargingTime: number
+  dischargingTime: number
+  onlevelchange: ((this: BatteryManager, ev: Event) => any) | null
+  onchargingchange: ((this: BatteryManager, ev: Event) => any) | null
+  onchargingtimechange: ((this: BatteryManager, ev: Event) => any) | null
+  ondischargingtimechange: ((this: BatteryManager, ev: Event) => any) | null
+  addEventListener(type: 'levelchange' | 'chargingchange' | 'chargingtimechange' | 'dischargingtimechange', listener: EventListenerOrEventListenerObject): void
+  removeEventListener(type: 'levelchange' | 'chargingchange' | 'chargingtimechange' | 'dischargingtimechange', listener: EventListenerOrEventListenerObject): void
+}
+
+interface NavigatorWithBattery extends Navigator {
+  getBattery?: () => Promise<BatteryManager>
+}
+
 export function useBattery(): BatteryStatus {
   const [status, setStatus] = useState<BatteryStatus>({
     level: null,
@@ -18,13 +35,15 @@ export function useBattery(): BatteryStatus {
   })
 
   useEffect(() => {
+    const navigatorWithBattery = navigator as NavigatorWithBattery
+    
     // Проверяем поддержку Battery Status API
-    if (!('getBattery' in navigator)) {
+    if (!navigatorWithBattery.getBattery) {
       setStatus(prev => ({ ...prev, supported: false }))
       return
     }
 
-    let battery: any = null
+    let battery: BatteryManager | null = null
 
     const updateBatteryStatus = () => {
       if (!battery) return
@@ -49,7 +68,7 @@ export function useBattery(): BatteryStatus {
 
     const initBattery = async () => {
       try {
-        battery = await (navigator as any).getBattery()
+        battery = await navigatorWithBattery.getBattery!()
         updateBatteryStatus()
         handleBatteryEvents()
       } catch (error) {
